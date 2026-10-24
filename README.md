@@ -35,6 +35,17 @@ Initial extraction checkpoint: 28 tests and nine crash subtests passed before cl
 
 ## Athena compatibility review
 
-The backend pins core `ce45669fd0e69068e14776206f1e97d5d40c9b0c`, which omits PgCat-ignored startup options, enforces transaction cleanup and handles SQLSTATE 58000 as temporary unavailability without replaying writes. Terminal states require `deleted_at` in the initial schema. Deployment examples explicitly use `FF_DB_SSLMODE=disable` for the approved Tailscale route. See OPERATIONS.md for required role defaults, PgCat routing, retry policy and coordinated restore limitations. Validation after review corrections: 34 backend tests and nine crash subtests passed with real tusd and disposable PostgreSQL, plus lint; core passed 42 tests, including real SQLSTATE diagnostics that distinguish PgCat pool failures from unrelated system errors. Athena must still verify its actual PgCat settings after separately authorized provisioning.
+The backend pins core `d3b362cb81ae184fb0c6c0fa5109636e62c2a9f3`, which omits PgCat-ignored startup options, enforces transaction cleanup and handles SQLSTATE 58000 as temporary unavailability without replaying writes. Terminal states require `deleted_at` in the initial schema. Deployment examples explicitly use `FF_DB_SSLMODE=disable` for the approved Tailscale route. See OPERATIONS.md for required role defaults, PgCat routing, retry policy and coordinated restore limitations. Validation after review corrections: 34 backend tests and nine crash subtests passed with real tusd and disposable PostgreSQL, plus lint; core passed 42 tests, including real SQLSTATE diagnostics that distinguish PgCat pool failures from unrelated system errors. Athena must still verify its actual PgCat settings after separately authorized provisioning.
 
 Shared-disk admission now supports `FF_STORAGE_BUDGET_BYTES` (200 GiB default), including ready uploads. Apollo sizing requires `FF_MIN_FREE_BYTES=64424509440` (60 GiB); see OPERATIONS.md for accounting and limits. Current validation: 35 backend tests and nine crash subtests; 45 core tests and 28 models tests.
+
+Production authentication now has an explicit `FF_AUTH_MODE=ingress` backend mode:
+only the private ingress secret authorizes administration; development bearer
+tokens and identity headers do not. Hooks use their own separate credential.
+See [the Gatekeeper handoff](deploy/GATEKEEPER.md) for configuration, trust
+boundaries and Apollo's required acceptance checks. Local Compose stays in
+`development` mode. Live nginx/Gatekeeper wiring remains pending.
+
+Authentication validation: 38 models tests, 45 core tests, 49 backend tests and
+nine crash subtests passed with installed wheels, disposable PostgreSQL and real
+tusd. Lint and the local nginx configuration syntax check passed.

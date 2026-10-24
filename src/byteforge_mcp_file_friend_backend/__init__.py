@@ -3,8 +3,8 @@
 from byteforge_mcp_file_friend_core.database import DatabaseUnavailable
 from byteforge_mcp_file_friend_core.lifecycle import Lifecycle
 from byteforge_mcp_file_friend_models import FriendConfig
-from flask import Flask, Response
-from flask_smorest import Api
+from flask import Flask, Response, request
+from flask_smorest import Api, abort
 
 
 def create_app(config: FriendConfig | None = None) -> Flask:
@@ -22,6 +22,14 @@ def create_app(config: FriendConfig | None = None) -> Flask:
 
     api.register_blueprint(files)
     api.register_blueprint(hooks)
+
+    @app.before_request
+    def reject_method_override() -> None:
+        # Authorization must apply to the method actually executed.
+        if any(name in request.headers for name in (
+            "X-HTTP-Method-Override", "X-Method-Override", "X-HTTP-Method",
+        )):
+            abort(400, message="Method override headers are not supported")
 
     @app.errorhandler(DatabaseUnavailable)
     def database_unavailable(error):

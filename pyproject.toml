@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 authors = [{name = "Jason Byteforge"}]
 dependencies = [
-    "byteforge-mcp-file-friend-models @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@eb56d7d595aaaab6ca195f5992a822e67bd1a054",
-    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@ce45669fd0e69068e14776206f1e97d5d40c9b0c",
+    "byteforge-mcp-file-friend-models @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@7ffce069682e46c063a14f85d62126b215ba5087",
+    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@d3b362cb81ae184fb0c6c0fa5109636e62c2a9f3",
     "psycopg2-binary>=2.9,<3",
     "Flask>=3.1,<4",
     "flask-smorest>=0.46,<1",

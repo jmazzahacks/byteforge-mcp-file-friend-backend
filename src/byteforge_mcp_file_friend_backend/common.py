@@ -1,4 +1,4 @@
-"""Per-application services and explicit local-development authentication."""
+"""Per-application services and mutually exclusive ingress/development authentication."""
 
 import hmac
 
@@ -17,12 +17,19 @@ def store() -> Lifecycle:
 
 
 def require_admin() -> None:
-    # This first slice has local development auth. Production Gatekeeper integration
-    # must replace this verifier; never trust a client-controlled forwarding header.
-    token = config().dev_admin_token
-    supplied = request.headers.get("Authorization", "")
-    if not token or not hmac.compare_digest(supplied.encode("utf-8"), f"Bearer {token}".encode()):
-        abort(401, message="A valid File Friend administrator token is required")
+    settings = config()
+    if settings.auth_mode == "ingress":
+        # The private ingress overwrites this header ONLY after Gatekeeper allows
+        # the original method/route. Client identity headers are never authority.
+        expected = settings.ingress_shared_secret
+        supplied = request.headers.get("X-FF-Ingress-Auth", "")
+    elif settings.auth_mode == "development":
+        expected = f"Bearer {settings.dev_admin_token}" if settings.dev_admin_token else ""
+        supplied = request.headers.get("Authorization", "")
+    else:
+        abort(401, message="File Friend administrator authorization required")
+    if not expected or not hmac.compare_digest(supplied.encode("utf-8"), expected.encode("utf-8")):
+        abort(401, message="File Friend administrator authorization required")
 
 
 def require_hook() -> None:

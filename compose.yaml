@@ -10,6 +10,7 @@ x-ff-environment: &ff-environment
   FF_PUBLIC_URL: ${FF_PUBLIC_URL:-http://127.0.0.1:8081}
   FF_TUSD_URL: http://tusd:8080/files/
   FF_HOOK_TOKEN: ${FF_HOOK_TOKEN:?Set a random hex hook token}
+  FF_AUTH_MODE: development # Local proxy uses the development verifier, not Gatekeeper.
   FF_DEV_ADMIN_TOKEN: ${FF_DEV_ADMIN_TOKEN:?Set a random shared-administrator token}
   FF_MAX_SIZE: ${FF_MAX_SIZE:-53687091200}
   FF_MIN_FREE_BYTES: ${FF_MIN_FREE_BYTES:-1073741824}

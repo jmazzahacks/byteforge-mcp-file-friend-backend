@@ -178,3 +178,12 @@ Local validation: 28 models tests, 45 core tests, 35 backend tests and nine cras
 subtests passed, with real tusd and disposable PostgreSQL. Capacity tests cover
 concurrent processes, exact boundaries, partial uploads, published hardlinks,
 pending deletion, and budget release after cleanup. No database schema change.
+
+### Production ingress authentication
+
+The backend implementation is ready for Apollo's Gatekeeper wiring. Follow
+[deploy/GATEKEEPER.md](deploy/GATEKEEPER.md): configure `FF_AUTH_MODE=ingress`,
+set a distinct random `FF_INGRESS_SHARED_SECRET`, and unset `FF_DEV_ADMIN_TOKEN`.
+The local Compose/proxy deliberately remain development-only. A successful local
+backend test does not validate the live proxy's header sanitization or Gatekeeper
+route/grant configuration; the infrastructure owners must perform those checks.
