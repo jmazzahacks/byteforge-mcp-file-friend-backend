@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.error import HTTPError
 
 import pytest
+from byteforge_mcp_file_friend_api_python import Client, open_reference
 from byteforge_mcp_file_friend_core.tusd import Tusd
 from byteforge_mcp_file_friend_models import FriendConfig, validate_id
 from flask import Response, abort, request, send_file
@@ -20,9 +21,6 @@ from werkzeug.serving import make_server
 
 from byteforge_mcp_file_friend_backend import create_app
 
-client_package = pytest.importorskip("byteforge_mcp_file_friend_api_python", reason="Independent client extraction is pending")
-Client = client_package.Client
-open_reference = client_package.open_reference
 
 @pytest.fixture
 def stack(tmp_path: Path):

@@ -1,6 +1,6 @@
 # Operations reference
 
-Historical workspace documentation adapted for backend imports. Client installation and its package are pending extraction; validation counts below describe the original workspace, not this new repository. See README.md for current backend installation/tests.
+Historical workspace documentation adapted for backend imports. The client is a separate published package, pinned for backend tests in `test-requirements.txt`; validation counts below describe the original workspace, not this new repository. See README.md for current backend installation/tests.
 
 # MCP File Friend
 
@@ -10,7 +10,7 @@ Out-of-band file transfer for remote MCP tools. Upload bytes through tusd, verif
 
 ## Local Docker setup
 
-The backend uses separately packaged models and core, pinned to reviewed Git commits. The Python client is being extracted separately. Docker runs the API, tusd, supervised worker and nginx on a shared local volume. Only nginx is exposed, bound to loopback.
+The backend uses separately packaged models and core, pinned to reviewed Git commits. The Python client is separately packaged. Docker runs the API, tusd, supervised worker and nginx on a shared local volume. Only nginx is exposed, bound to loopback.
 
 Copy `example.env` to `.env` and set distinct random hexadecimal `FF_HOOK_TOKEN`, `FF_DEV_ADMIN_TOKEN` and `FF_DB_PASSWORD` values (for example, generate each with `openssl rand -hex 32`). For a **disposable local stack**, set `FF_DB_HOST=database`, `FF_DB_NAME=ff_test` and `FF_DB_SSLMODE=disable`. The test overlay starts a private PostgreSQL container and initializes its empty volume:
 
@@ -25,7 +25,7 @@ This Compose configuration is for local use. Public deployment requires TLS, the
 
 ## CLI
 
-The `ff` command belongs to the separate Python client package (extraction pending), not this backend. Configure `FF_SERVER_URL` and `FF_TOKEN`, or `~/.config/ff/config.toml`:
+The `ff` command belongs to the separate Python client package (see `test-requirements.txt` for the reviewed revision), not this backend. Configure `FF_SERVER_URL` and `FF_TOKEN`, or `~/.config/ff/config.toml`:
 
 ```toml
 server_url = "https://ff.example.com"
@@ -92,6 +92,7 @@ uv pip install --require-hashes -r requirements.txt -r dev-requirements.txt -r b
 python dev_scripts/build_internal_wheels.py
 uv build --wheel --no-build-isolation
 uv pip install --no-deps dist/*.whl
+uv pip install --no-deps --no-build-isolation -r test-requirements.txt
 TUSD_BIN=/path/to/verified/tusd-v2.10.1 bash dev_scripts/test_local.sh -q
 ruff check src tests spike/validate.py spike/test_lifecycle.py
 ```
