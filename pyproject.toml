@@ -10,8 +10,12 @@ readme = "README.md"
 requires-python = ">=3.13"
 authors = [{name = "Jason Byteforge"}]
 dependencies = [
+    "prometheus-flask-exporter>=0.23,<1",
+    "byteforge-loki-logging @ git+https://github.com/jmazzahacks/byteforge-loki-logging.git@3df22201209c5ccfd3800ec8e7e5fc26d4784d44",
+    "python-logging-loki @ git+https://github.com/waylayio/python-logging-loki.git@2b34c1ee2be8fd220191a184a4929af646df52ae",
+    "prometheus-client>=0.23,<1",
     "byteforge-mcp-file-friend-models @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@9c5d7054af80be19206d32dadd7975f4e421aa0d",
-    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@67f38db1be02540a85337fc5ba68920cac7e0d78",
+    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@82465dc7f146662793d90fa8247665ac78c17e90",
     "psycopg2-binary>=2.9,<3",
     "Flask>=3.1,<4",
     "flask-smorest>=0.46,<1",

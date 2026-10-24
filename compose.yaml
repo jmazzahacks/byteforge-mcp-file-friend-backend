@@ -21,12 +21,20 @@ x-ff-environment: &ff-environment
   FF_RESERVATION_TTL: ${FF_RESERVATION_TTL:-300}
   FF_RETENTION: ${FF_RETENTION:-604800}
   FF_WORKER_TIMEOUT: ${FF_WORKER_TIMEOUT:-3600}
+  DEBUG_LOCAL: ${DEBUG_LOCAL:-true}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  LOKI_ENDPOINT: ${LOKI_ENDPOINT:-}
+  LOKI_USER: ${LOKI_USER:-}
+  LOKI_PASSWORD: ${LOKI_PASSWORD:-}
+  LOKI_CA_BUNDLE_PATH: ${LOKI_CA_BUNDLE_PATH:-}
   FF_WORKER_GRACE: ${FF_WORKER_GRACE:-15}
 services:
   api:
     build: .
     image: byteforge-file-friend:local
     environment: *ff-environment
+    tmpfs:
+      - /tmp/file-friend-prometheus:uid=1000,gid=1000,mode=0700
     volumes: [files:/data/ff]
     restart: unless-stopped
     stop_grace_period: 30s
@@ -58,7 +66,10 @@ services:
     stop_grace_period: 30s
   worker:
     image: byteforge-file-friend:local
-    environment: *ff-environment
+    environment:
+      <<: *ff-environment
+      FF_WORKER_METRICS_HOST: 0.0.0.0
+      FF_WORKER_METRICS_PORT: 9101
     command: [ff-worker]
     volumes: [files:/data/ff]
     depends_on:

@@ -1,4 +1,4 @@
-"""Build only the two reviewed first-party dependencies from immutable public Git commits."""
+"""Build reviewed Git dependencies from explicit immutable public commits."""
 
 import argparse
 import re
@@ -8,7 +8,9 @@ import tempfile
 import tomllib
 from pathlib import Path
 
-EXPECTED = {'byteforge-mcp-file-friend-models', 'byteforge-mcp-file-friend-core'}
+OWNERS = {'byteforge-mcp-file-friend-models': 'jmazzahacks',
+          'byteforge-mcp-file-friend-core': 'jmazzahacks',
+          'byteforge-loki-logging': 'jmazzahacks', 'python-logging-loki': 'waylayio'}
 
 
 def main() -> None:
@@ -22,14 +24,13 @@ def main() -> None:
         if ' @ ' not in dependency:
             continue
         match = re.fullmatch(
-            r'(byteforge-mcp-file-friend-(?:models|core)) @ '
-            r'git\+https://github.com/jmazzahacks/\1\.git@([0-9a-f]{40})', dependency
+            r'([a-z-]+) @ git\+https://github.com/([a-z]+)/\1\.git@([0-9a-f]{40})', dependency
         )
-        if match is None:
+        if match is None or OWNERS.get(match[1]) != match[2]:
             raise ValueError('Unexpected internal dependency; review its URL and immutable revision')
-        dependencies.append(match.groups())
-    if {name for name, _ in dependencies} != EXPECTED or len(dependencies) != 2:
-        raise ValueError('Expected exactly models and core dependencies')
+        dependencies.append((match[1], match[3]))
+    if {name for name, _ in dependencies} != set(OWNERS) or len(dependencies) != len(OWNERS):
+        raise ValueError('Expected exactly the reviewed dependency set')
     output = args.out_dir.resolve()
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='ff-internal-build-') as temporary:
@@ -38,7 +39,7 @@ def main() -> None:
             subprocess.run(['git', 'init', '--quiet', str(checkout)], check=True)
             subprocess.run(
                 ['git', '-C', str(checkout), 'fetch', '--quiet', '--depth=1',
-                 f'https://github.com/jmazzahacks/{name}.git', revision], check=True
+                 f'https://github.com/{OWNERS[name]}/{name}.git', revision], check=True
             )
             subprocess.run(['git', '-C', str(checkout), 'checkout', '--quiet', '--detach', 'FETCH_HEAD'], check=True)
             actual = subprocess.check_output(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], text=True).strip()

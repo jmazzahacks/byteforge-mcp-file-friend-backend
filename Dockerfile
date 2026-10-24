@@ -20,9 +20,10 @@ RUN uv pip install --system --no-deps /wheels/*.whl && rm -rf /wheels \
     && mkdir -p /data/ff && chown appuser:appuser /data/ff
 COPY database/ /app/database/
 COPY dev_scripts/setup_database.py /app/dev_scripts/setup_database.py
+COPY entrypoint.sh gunicorn_conf.py /app/
 USER appuser
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 FF_DATA_DIR=/data/ff
 EXPOSE 8081
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8081/health', timeout=2)"
-CMD ["gunicorn", "--bind", "0.0.0.0:8081", "--workers", "4", "--timeout", "30", "byteforge_mcp_file_friend_backend:create_app()"]
+CMD ["sh", "/app/entrypoint.sh"]

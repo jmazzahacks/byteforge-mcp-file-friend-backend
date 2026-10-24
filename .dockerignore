@@ -15,3 +15,5 @@ src/**/*.pyc
 
 !LICENSE
 !dev_scripts/build_internal_wheels.py
+!entrypoint.sh
+!gunicorn_conf.py

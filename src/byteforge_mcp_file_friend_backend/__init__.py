@@ -8,9 +8,17 @@ from flask_smorest import Api, abort
 
 
 def create_app(config: FriendConfig | None = None) -> Flask:
+    from byteforge_mcp_file_friend_core.observability import configure_service_logging
+
+    from byteforge_mcp_file_friend_backend.metrics import instrument
+
+    configure_service_logging("file-friend-api")
     config = config or FriendConfig.from_env()
     config.validate()
     app = Flask(__name__)
+    app.logger.handlers.clear()
+    app.logger.propagate = True
+    instrument(app)
     app.config.update(
         API_TITLE="File Friend", API_VERSION="v1", OPENAPI_VERSION="3.0.3", MAX_CONTENT_LENGTH=65536
     )
@@ -33,6 +41,7 @@ def create_app(config: FriendConfig | None = None) -> Flask:
 
     @app.errorhandler(DatabaseUnavailable)
     def database_unavailable(error):
+        app.extensions["ff_database_errors"].inc()
         return {"error": "database_unavailable"}, 503, {"Retry-After": "5"}
 
     @app.after_request

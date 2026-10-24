@@ -1,0 +1,16 @@
+# Janus review template; targets are Apollo's proposed tailnet-only listeners.
+scrape_configs:
+  - job_name: file-friend-api
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['APOLLO_METRICS_HOST:9861']
+        labels:
+          application: file-friend-api
+  - job_name: file-friend-worker
+    scrape_interval: 15s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['APOLLO_METRICS_HOST:9862']
+        labels:
+          application: file-friend-worker

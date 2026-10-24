@@ -1,0 +1,33 @@
+groups:
+  - name: file-friend
+    rules:
+      - alert: FileFriendScrapeDown
+        expr: up{job=~"file-friend-(api|worker)"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: 'File Friend scrape is unavailable'}
+      - alert: FileFriendWorkerUnhealthy
+        expr: ff_worker_healthy{job="file-friend-worker"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: 'File Friend worker heartbeat or passes are unhealthy'}
+      - alert: FileFriendDatabaseUnavailable
+        expr: ff_database_up{job="file-friend-worker"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: 'File Friend lifecycle database is unavailable'}
+      - alert: FileFriendDiskReserveLow
+        expr: ff_storage_free_bytes{job="file-friend-worker"} < ff_storage_reserve_bytes{job="file-friend-worker"} + 21474836480
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: 'File Friend disk is within 20 GiB of admission reserve'}
+      - alert: FileFriendDiskReserveBreached
+        expr: ff_storage_free_bytes{job="file-friend-worker"} < ff_storage_reserve_bytes{job="file-friend-worker"}
+        for: 1m
+        labels: {severity: critical}
+        annotations: {summary: 'Shared disk free space is below the File Friend reserve'}
+      - alert: FileFriendPassFailures
+        expr: increase(ff_worker_passes_total{job="file-friend-worker",result="failure"}[5m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: 'File Friend reconciliation passes are failing'}
