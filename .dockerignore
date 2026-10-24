@@ -1,0 +1,17 @@
+*
+!Dockerfile
+!pyproject.toml
+!README.md
+!requirements.txt
+!build-requirements.txt
+!src/
+!src/**
+src/**/__pycache__/
+src/**/*.pyc
+!database/
+!database/schema.sql
+!dev_scripts/
+!dev_scripts/setup_database.py
+
+!LICENSE
+!dev_scripts/build_internal_wheels.py

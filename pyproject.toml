@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "byteforge-mcp-file-friend-backend"
+version = "0.0.1"
+description = "File Friend Flask API and lifecycle service"
+readme = "README.md"
+requires-python = ">=3.13"
+authors = [{name = "Jason Byteforge"}]
+dependencies = [
+    "byteforge-mcp-file-friend-models @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@1282a681a41cd144b21593ab0820a724b9a485a6",
+    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@361cbb4306b196ad55f93f469d2913d5c00f1275",
+    "psycopg2-binary>=2.9,<3",
+    "Flask>=3.1,<4",
+    "flask-smorest>=0.46,<1",
+    "gunicorn>=23,<24",
+    "python-dotenv>=1,<2",
+]
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Homepage = "https://github.com/jmazzahacks/byteforge-mcp-file-friend-backend"
+Issues = "https://github.com/jmazzahacks/byteforge-mcp-file-friend-backend/issues"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/byteforge_mcp_file_friend_backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "spike/test_lifecycle.py"]
+addopts = "--confcutdir=."
+
+[tool.ruff]
+line-length = 110
+
+[tool.uv]
+exclude-newer = "7 days"

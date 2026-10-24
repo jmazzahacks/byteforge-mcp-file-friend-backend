@@ -1,0 +1,80 @@
+x-ff-environment: &ff-environment
+  FF_DB_HOST: ${FF_DB_HOST:?Set database host}
+  FF_DB_PORT: ${FF_DB_PORT:-5432}
+  FF_DB_NAME: ${FF_DB_NAME:-byteforge_file_friend}
+  FF_DB_USER: ${FF_DB_USER:-byteforge_file_friend}
+  FF_DB_PASSWORD: ${FF_DB_PASSWORD:?Set database password}
+  FF_DB_SSLMODE: ${FF_DB_SSLMODE:-prefer}
+  FF_DB_POOL_SIZE: ${FF_DB_POOL_SIZE:-4}
+  FF_DATA_DIR: /data/ff
+  FF_PUBLIC_URL: ${FF_PUBLIC_URL:-http://127.0.0.1:8081}
+  FF_TUSD_URL: http://tusd:8080/files/
+  FF_HOOK_TOKEN: ${FF_HOOK_TOKEN:?Set a random hex hook token}
+  FF_DEV_ADMIN_TOKEN: ${FF_DEV_ADMIN_TOKEN:?Set a random shared-administrator token}
+  FF_MAX_SIZE: ${FF_MAX_SIZE:-53687091200}
+  FF_MIN_FREE_BYTES: ${FF_MIN_FREE_BYTES:-1073741824}
+  FF_MAX_ACTIVE: ${FF_MAX_ACTIVE:-16}
+  FF_INCOMPLETE_TTL: ${FF_INCOMPLETE_TTL:-86400}
+  FF_INCOMPLETE_MAX_AGE: ${FF_INCOMPLETE_MAX_AGE:-604800}
+  FF_RESERVATION_TTL: ${FF_RESERVATION_TTL:-300}
+  FF_RETENTION: ${FF_RETENTION:-604800}
+  FF_WORKER_TIMEOUT: ${FF_WORKER_TIMEOUT:-3600}
+  FF_WORKER_GRACE: ${FF_WORKER_GRACE:-15}
+services:
+  api:
+    build: .
+    image: byteforge-file-friend:local
+    environment: *ff-environment
+    volumes: [files:/data/ff]
+    restart: unless-stopped
+    stop_grace_period: 30s
+  tusd:
+    image: tusproject/tusd:v2.10.1@sha256:7b1c552a8b42f4b36cb01f2a3bd49f82ab078b2eefd191459e716141dd50376c
+    user: "1000:1000"
+    command:
+      - -host=0.0.0.0
+      - -port=8080
+      - -upload-dir=/data/ff/uploads
+      - -behind-proxy
+      - -disable-download
+      - -disable-concatenation
+      - -max-size=${FF_MAX_SIZE:-53687091200}
+      - -hooks-http=http://tusd:${FF_HOOK_TOKEN}@api:8081/internal/hooks
+      - -hooks-enabled-events=pre-create,post-create,post-finish,pre-terminate,post-terminate
+      - -hooks-http-timeout=10s
+      - -verbose=false
+      - -show-startup-logs=false
+      - -show-greeting=false
+    volumes: [files:/data/ff]
+    depends_on:
+      api: {condition: service_healthy}
+    restart: unless-stopped
+    stop_grace_period: 30s
+  worker:
+    image: byteforge-file-friend:local
+    environment: *ff-environment
+    command: [ff-worker]
+    volumes: [files:/data/ff]
+    depends_on:
+      api: {condition: service_healthy}
+      tusd: {condition: service_started}
+    healthcheck:
+      test: [CMD, ff-worker, --healthcheck]
+      interval: 10s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+    restart: unless-stopped
+    stop_grace_period: 30s
+  proxy:
+    image: nginx:1.28-alpine@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236
+    ports: ["127.0.0.1:${FF_PORT:-8081}:8081"]
+    volumes:
+      - files:/data/ff:ro
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api: {condition: service_healthy}
+      tusd: {condition: service_started}
+    restart: unless-stopped
+volumes:
+  files:
