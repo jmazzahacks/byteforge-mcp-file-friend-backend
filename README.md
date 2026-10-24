@@ -1,5 +1,7 @@
 # File Friend backend
 
+Public repository: https://github.com/jmazzahacks/byteforge-mcp-file-friend-backend.
+
 Flask API, tusd hooks and service image for File Friend. Python 3.13+, MIT licensed. Models and core are separate packages pinned to reviewed GitHub commits in `pyproject.toml`. Backend includes no copies of those packages.
 
 ## Local validation

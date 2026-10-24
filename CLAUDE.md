@@ -4,4 +4,4 @@ Independent backend repository using ByteForge flask-smorest-api, flask-docker-d
 
 Keep HTTPException behavior intact. Do not change capability or auth contracts during extraction. API/worker share the service image; no startup migrations. Canonical schema/setup lives here; Athena owns production provisioning/migrations, Apollo owns deployment. Never modify another agent's infrastructure.
 
-Root venv at `bin/activate`; preserve `.gitignore`. Run installed-wheel tests with disposable loopback PostgreSQL only. Client-dependent tests explicitly skip pending client extraction; no client runtime dependency. MIT/public under jmazzahacks approved. This checkpoint is local, with no remote or deployment yet.
+Root venv at `bin/activate`; preserve `.gitignore`. Run installed-wheel tests with disposable loopback PostgreSQL only. Client-dependent tests explicitly skip pending client extraction; no client runtime dependency. MIT/public under jmazzahacks approved. Approved public repository: https://github.com/jmazzahacks/byteforge-mcp-file-friend-backend. No production deployment or image publication yet.
