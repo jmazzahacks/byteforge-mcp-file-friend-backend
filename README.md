@@ -56,3 +56,5 @@ Observability is implemented locally using the ByteForge Loki and Prometheus
 skills. See [deployment handoff](deploy/OBSERVABILITY.md) for safe logging,
 multiprocess API counters, standalone worker/lifecycle metrics, owner templates
 and the remaining live acceptance checks. No dashboards or scrapers were deployed.
+
+Service image release1 is published; see [immutable digest and validation](releases/1.md). Registry authentication is currently required. No deployment has occurred.
