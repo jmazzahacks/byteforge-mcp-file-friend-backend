@@ -75,7 +75,9 @@ supervisor serves metrics; spawned passes do not bind ports or own counters.
   rather than reporting misleading zeros. Disk and heartbeat gauges remain.
 - ff_uploads{state}, ff_upload_oldest_age_seconds{state}: admission age, NOT time
   in state or inactivity age; do not use it to infer incomplete-TTL violations.
-- ff_storage_available, ff_storage_free_bytes, ff_storage_budget_bytes,
+- ff_storage_available: dimensionless 0/1 filesystem-statistics health, NOT bytes.
+  If zero, free-space statistics are unavailable even if the worker is healthy.
+- ff_storage_free_bytes, ff_storage_budget_bytes,
   ff_storage_reserve_bytes, ff_storage_committed_bytes (nonterminal declared sizes)
 
 Database values are grouped in one short read transaction per scrape. No per-ID
