@@ -11,7 +11,7 @@ requires-python = ">=3.13"
 authors = [{name = "Jason Byteforge"}]
 dependencies = [
     "byteforge-mcp-file-friend-models @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@1282a681a41cd144b21593ab0820a724b9a485a6",
-    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@54b330e819d89cddb4fae1cefee6099fcd6995ab",
+    "byteforge-mcp-file-friend-core @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@25a00d319ae22cd981d77394d4c94eeddc1cb99f",
     "psycopg2-binary>=2.9,<3",
     "Flask>=3.1,<4",
     "flask-smorest>=0.46,<1",
