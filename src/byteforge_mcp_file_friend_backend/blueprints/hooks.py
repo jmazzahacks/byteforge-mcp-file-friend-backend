@@ -45,7 +45,8 @@ class HookResource(MethodView):
             if kind == "pre-create":
                 settings = config()
                 record = store().reserve(
-                    metadata, upload["Size"], settings.max_size, settings.min_free, settings.max_active
+                    metadata, upload["Size"], settings.max_size, settings.min_free, settings.max_active,
+                    storage_budget=settings.storage_budget,
                 )
                 return {
                     "ChangeFileInfo": {

@@ -185,3 +185,13 @@ def test_public_url_rejects_paths_and_invalid_ports(tmp_path):
     ):
         with pytest.raises(ValueError):
             FriendConfig(tmp_path, url, hook_token="hook").validate()
+
+
+def test_hook_enforces_configured_storage_budget(app) -> None:
+    app.extensions["ff_config"] = replace(app.extensions["ff_config"], storage_budget=3)
+    client = app.test_client()
+    first = client.post("/internal/hooks", json=create_event(), headers=hook_headers())
+    assert "ChangeFileInfo" in first.json
+    rejected = client.post("/internal/hooks", json=create_event(1), headers=hook_headers())
+    assert rejected.json["RejectUpload"] is True
+    assert rejected.json["HTTPResponse"]["StatusCode"] == 503

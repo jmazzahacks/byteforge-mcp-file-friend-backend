@@ -150,3 +150,31 @@ There is **no implemented restore-specific or conservative reconciler mode**. Or
 Athena owns reviewed database corrections; Apollo owns stopped-volume/quarantine actions. Never unlink an active tusd upload. Prefer the normal deletion protocol in a controlled recovery window after state correction, with ingress still blocked. A terminal timestamp is set only after required storage cleanup. If prior revocations cannot be established from available recovery evidence, retire the affected capability rather than republishing it.
 
 Metadata backups may lag bytes by up to 24 hours under the reviewed daily-dump policy; there is no PITR. Jason accepted the database error-statement logging exposure in Athena's 2026-10-24 ticket note: no role-level log_min_error_statement override is planned. Failed SQL can therefore expose capability IDs/filenames in access-controlled PostgreSQL/Loki logs; application validation remains important. Backup retention is still Jason's pending decision, not an application-agent approval. Enrollment and first successful backup must be verified before production readiness. A coordinated restore drill is still required; this runbook does not claim one has been performed for File Friend.
+
+### Initial Apollo shared-disk capacity
+
+Jason selected Apollo's existing disk. Use one mount from
+`/home/foo/docker_volumes/file-friend/data` to `/data/ff` for API, worker and tusd.
+Set `FF_STORAGE_BUDGET_BYTES=214748364800` (200 GiB) and
+`FF_MIN_FREE_BYTES=64424509440` (60 GiB). Local examples retain a smaller
+free-space threshold; Apollo must override it explicitly. No deployment is
+performed by this change.
+
+Admission holds the PostgreSQL transaction advisory lock while counting declared
+sizes of uploading, verifying, publishing, ready and deleting records. The total
+plus the proposed upload must fit the storage budget. Published hardlinks count
+once. Deleting uploads retain their reservation until tusd cleanup completes;
+terminal tombstones consume no byte budget. Reducing the budget below current
+usage blocks further positive-size admission without deleting existing files.
+
+Separately, current filesystem free bytes minus unfinished reservations and the
+new upload must leave the configured free-space reserve. This is an admission
+check, not a filesystem quota: unrelated services can consume space afterward,
+and protocol artifacts, filesystem overhead and logs are not payload budget
+bytes. Monitor free space and maintain the reserve. Do not test exhaustion by
+filling Apollo's shared production filesystem.
+
+Local validation: 28 models tests, 45 core tests, 35 backend tests and nine crash
+subtests passed, with real tusd and disposable PostgreSQL. Capacity tests cover
+concurrent processes, exact boundaries, partial uploads, published hardlinks,
+pending deletion, and budget release after cleanup. No database schema change.
