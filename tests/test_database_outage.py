@@ -4,7 +4,7 @@ from byteforge_mcp_file_friend_backend import create_app
 
 
 def test_database_unavailable_fails_closed(tmp_path):
-    settings = FriendConfig(tmp_path, "https://ff.example", hook_token="hook", dev_admin_token="admin")
+    settings = FriendConfig(tmp_path, "https://ff.example", hook_token="hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", dev_admin_token="admin")
     app = create_app(settings)
     database = app.extensions["ff_store"].repository.database
     database.options["port"] = 1
@@ -20,7 +20,7 @@ def test_database_unavailable_fails_closed(tmp_path):
 
 
 def test_pgcat_pool_error_returns_retryable_status_without_payload_leak(tmp_path, monkeypatch):
-    settings = FriendConfig(tmp_path, "https://ff.example", hook_token="hook", dev_admin_token="admin")
+    settings = FriendConfig(tmp_path, "https://ff.example", hook_token="hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", dev_admin_token="admin")
     app = create_app(settings)
     repository = app.extensions["ff_store"].repository
     attempts = []

@@ -10,7 +10,8 @@ Compose stack remain local-development validation configurations.
 Set `FF_AUTH_MODE=ingress`, unset `FF_DEV_ADMIN_TOKEN`, and configure
 `FF_INGRESS_SHARED_SECRET` with a generated random secret (for example 32 random
 bytes encoded as 64 hex characters). The accepted syntax is 32–512 URL-safe ASCII
-characters. Generate a separate `FF_HOOK_TOKEN`; using the same secret is rejected.
+characters. Generate a separate `FF_HOOK_TOKEN` with the same 32–512 URL-safe
+ASCII rule; using the same secret is rejected.
 Store secrets privately in the service environment and nginx's protected include,
 never in tickets, Git, logs, or client configuration. API and worker share the
 validated configuration. Production startup fails on missing/invalid ingress
@@ -47,8 +48,8 @@ the ingress secret grants shared administration: protect it like a bearer secret
   static file design. No ingress secret, credential forwarding, directory listing,
   or cache. The backend does not introduce a download authorization endpoint.
 - `/internal/*`, `/health`, `/ready`, Gatekeeper subrequest locations and all other
-  paths stay inaccessible publicly. `/internal/auth` is a private verifier, not
-  a Gatekeeper client; calling it before Gatekeeper is not a substitute for authz.
+  paths stay inaccessible publicly. `/internal/auth` returns 404 in ingress mode;
+  it exists only for the development proxy, not as a Gatekeeper client.
 - Reject X-HTTP-Method-Override, X-Method-Override and X-HTTP-Method. The API also
   rejects these headers before handling any request.
 - Follow the ByteForge gatekeeper-nginx-setup skill for auth_request phase ordering
@@ -68,3 +69,36 @@ Gatekeeper unavailability failing closed, and inaccessible internal routes.
 Inspect logs for a test capability ID and credentials without publishing either.
 The local backend tests verify its trust boundary, not the live Gatekeeper policy
 or Apollo's eventual nginx configuration.
+
+## Apollo follow-up review
+
+Current supported upload clients are the CLI, Python client and remote MCP tools;
+there is no browser uploader in v1. Use `-disable-cors` on tusd, retaining
+Gatekeeper authentication on OPTIONS. Browser downloads remain public capability
+GET/HEAD. Browser upload support would need an explicit CORS/auth design.
+
+The worker now sets done/ and each publication directory to 0755 and the verified
+payload to 0644 before publishing its hardlink, independently of umask. nginx
+mounts done/ read-only. Apollo still owns mount traversal permissions and
+isolation from unrelated local users/containers. A restrictive-umask regression
+and real-tusd publication tests verify these modes.
+
+Pinned tusd v2.10.1 source (commit 388a27cb81c33b2349e0308b5e97e23797e86fd9):
+- `pkg/filestore/filestore.go` uses 0664 before the process umask.
+- `cmd/tusd/cli/hooks.go` prints the hook URL at startup. Set
+  `-show-startup-logs=false` AND `-show-greeting=false`.
+- `cmd/tusd/cli/log.go` changes DEBUG to INFO with `-verbose=false`; it does not
+  disable logs. `pkg/hooks/hooks.go` logs hook errors and capability IDs.
+- Local probes against the verified binary confirm connection-refused, timeout
+  and HTTP 500 failures redact the userinfo password, but capability paths remain
+  in request logs. This is evidence for those paths, not a guarantee for every
+  error or a future version. Hook error response bodies are also logged; hooks
+  must never echo credentials.
+
+Do not persist or ship raw tusd stdout/stderr to Loki. The local Compose service
+uses `logging: {driver: none}`; Apollo must likewise disable raw collection or
+implement and verify an allowlist sanitizer before any log sink. Keep the quiet
+startup flags too. Health/metrics provide diagnostics without capability paths.
+The hook credential remains in tusd's process argv even when a shell expands it
+from a private env file; privileged process inspection can read it. A shell is
+not argv secrecy. Keep process/container access restricted.

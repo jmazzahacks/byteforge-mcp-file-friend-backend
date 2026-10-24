@@ -15,7 +15,7 @@ def app(tmp_path: Path):
         FriendConfig(
             tmp_path,
             "https://ff.example",
-            hook_token="hook-secret",
+            hook_token="hook-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             dev_admin_token="admin-secret",
             min_free=0,
             max_size=1000,
@@ -25,7 +25,7 @@ def app(tmp_path: Path):
 
 
 def hook_headers() -> dict:
-    return {"Authorization": "Basic " + base64.b64encode(b"tusd:hook-secret").decode()}
+    return {"Authorization": "Basic " + base64.b64encode(b"tusd:hook-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx").decode()}
 
 
 def create_event(size: int = 3, **metadata: str) -> dict:
@@ -184,7 +184,7 @@ def test_public_url_rejects_paths_and_invalid_ports(tmp_path):
         "https://ff.example\n",
     ):
         with pytest.raises(ValueError):
-            FriendConfig(tmp_path, url, hook_token="hook").validate()
+            FriendConfig(tmp_path, url, hook_token="hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx").validate()
 
 
 def test_hook_enforces_configured_storage_budget(app) -> None:

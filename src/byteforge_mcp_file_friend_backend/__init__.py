@@ -48,6 +48,8 @@ def create_app(config: FriendConfig | None = None) -> Flask:
     def auth() -> tuple[str, int]:
         from byteforge_mcp_file_friend_backend.common import require_admin
 
+        if app.extensions["ff_config"].auth_mode != "development":
+            abort(404)
         require_admin()
         return "", 204
 

@@ -31,6 +31,9 @@ services:
     restart: unless-stopped
     stop_grace_period: 30s
   tusd:
+    # tusd logs capability paths even with verbose=false; do not persist raw logs.
+    logging:
+      driver: none
     image: tusproject/tusd:v2.10.1@sha256:7b1c552a8b42f4b36cb01f2a3bd49f82ab078b2eefd191459e716141dd50376c
     user: "1000:1000"
     command:
@@ -38,6 +41,7 @@ services:
       - -port=8080
       - -upload-dir=/data/ff/uploads
       - -behind-proxy
+      - -disable-cors
       - -disable-download
       - -disable-concatenation
       - -max-size=${FF_MAX_SIZE:-53687091200}

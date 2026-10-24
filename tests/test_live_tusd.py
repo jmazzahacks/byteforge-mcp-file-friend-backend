@@ -38,7 +38,7 @@ def test_actual_hooks_worker_and_delete(tmp_path: Path) -> None:
             tmp_path,
             "https://ff.example",
             tusd_url=tusd_url,
-            hook_token="test-hook",
+            hook_token="test-hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             dev_admin_token="test-admin",
             min_free=0,
         )
@@ -59,7 +59,7 @@ def test_actual_hooks_worker_and_delete(tmp_path: Path) -> None:
         "-max-size",
         "1048576",
         "-hooks-http",
-        f"http://tusd:test-hook@127.0.0.1:{server.server_port}/internal/hooks",
+        f"http://tusd:test-hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@127.0.0.1:{server.server_port}/internal/hooks",
         "-hooks-enabled-events",
         "pre-create,post-create,post-finish,pre-terminate,post-terminate",
         "-hooks-http-timeout",
@@ -122,7 +122,10 @@ def test_actual_hooks_worker_and_delete(tmp_path: Path) -> None:
                 status = client.get(f"/api/files/{file_id}")
                 assert status.json["state"] == ("ready" if valid else "failed")
                 if valid:
-                    assert store.published(store.read(file_id)).read_bytes() == body
+                    published = store.published(store.read(file_id))
+                    assert published.read_bytes() == body
+                    assert published.stat().st_mode & 0o777 == 0o644
+                    assert published.parent.stat().st_mode & 0o777 == 0o755
                     response = client.delete(
                         f"/api/files/{file_id}", headers={"Authorization": "Bearer test-admin"}
                     )

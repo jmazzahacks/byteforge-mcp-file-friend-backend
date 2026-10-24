@@ -14,7 +14,7 @@ SECRET = "a" * 64
 @pytest.fixture
 def ingress_app(tmp_path):
     return create_app(FriendConfig(
-        tmp_path, "https://ff.example", hook_token="hook-secret",
+        tmp_path, "https://ff.example", hook_token="hook-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
         auth_mode="ingress", ingress_shared_secret=SECRET, min_free=0,
     ))
 
@@ -24,11 +24,11 @@ def ingress_app(tmp_path):
     {"X-FF-Ingress-Auth": "true"}, {"X-FF-Ingress-Auth": "é"},
     {"X-FF-Ingress-Auth": SECRET + ", " + SECRET},
     {"X-Forwarded-User": "admin", "X-Authenticated-User": "admin", "X-API-Key": SECRET},
-    {"X-FF-Ingress-Auth": "hook-secret"},
+    {"X-FF-Ingress-Auth": "hook-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
 ])
 def test_spoofed_or_missing_ingress_authorization_denied(ingress_app, headers):
     client = ingress_app.test_client()
-    assert client.get("/internal/auth", headers=headers).status_code == 401
+    assert client.get("/internal/auth", headers=headers).status_code == 404
     # Deny before looking up the ID; credentials never grant through another header.
     assert client.delete("/api/files/" + "a" * 32, headers=headers).status_code == 401
 
@@ -40,7 +40,7 @@ def test_ingress_shared_administration_rotation_and_public_reads(ingress_app):
     client = ingress_app.test_client()
     assert client.get(path).status_code == 200
     assert client.head(path).status_code == 200
-    assert client.get("/internal/auth", headers={"X-FF-Ingress-Auth": SECRET}).status_code == 204
+    assert client.get("/internal/auth", headers={"X-FF-Ingress-Auth": SECRET}).status_code == 404
     # No upload ownership: the newly authorized ingress secret can delete existing uploads.
     rotated = "b" * 64
     ingress_app.extensions["ff_config"] = replace(
@@ -56,7 +56,7 @@ def test_hook_secret_and_ingress_secret_are_not_interchangeable(ingress_app):
     assert client.post("/internal/hooks", json={}, headers={"X-FF-Ingress-Auth": SECRET}).status_code == 401
     wrong_basic = base64.b64encode(f"tusd:{SECRET}".encode()).decode()
     assert client.post("/internal/hooks", json={}, headers={"Authorization": f"Basic {wrong_basic}"}).status_code == 401
-    basic = base64.b64encode(b"tusd:hook-secret").decode()
+    basic = base64.b64encode(b"tusd:hook-secret-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx").decode()
     event = {"Type": "pre-create", "Event": {"Upload": {
         "Size": 3, "MetaData": {"filename": "a", "sha256": "a" * 64},
     }}}
@@ -73,7 +73,7 @@ def test_method_overrides_rejected_even_with_ingress_authorization(ingress_app, 
 
 
 def test_development_mode_does_not_trust_ingress_headers(tmp_path):
-    app = create_app(FriendConfig(tmp_path, "https://ff.example", hook_token="hook", dev_admin_token="dev"))
+    app = create_app(FriendConfig(tmp_path, "https://ff.example", hook_token="hook-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", dev_admin_token="dev"))
     client = app.test_client()
     assert client.get("/internal/auth", headers={"X-FF-Ingress-Auth": SECRET}).status_code == 401
     assert client.get("/internal/auth", headers={"Authorization": "Bearer dev"}).status_code == 204
