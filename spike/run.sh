@@ -19,7 +19,7 @@ uv pip install --python "$spike_tmp/venv/bin/python" --require-hashes -r "$spike
 uv pip install --python "$spike_tmp/venv/bin/python" --require-hashes -r "$spike_dir/../build-requirements.txt"
 uv pip install --python "$spike_tmp/venv/bin/python" --no-deps --no-build-isolation \
   "git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-models.git@1282a681a41cd144b21593ab0820a724b9a485a6" \
-  "git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@361cbb4306b196ad55f93f469d2913d5c00f1275"
+  "git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-core.git@54b330e819d89cddb4fae1cefee6099fcd6995ab"
 "$spike_tmp/venv/bin/python" "$spike_dir/validate.py" \
   --tusd "$spike_tmp/tusd_linux_amd64/tusd"
 

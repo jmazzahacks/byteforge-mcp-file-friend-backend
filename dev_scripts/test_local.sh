@@ -18,5 +18,10 @@ export FF_DB_PASSWORD=disposable-test FF_DB_SSLMODE=disable FF_TEST_DATABASE=1
 export FF_TEST_PG_CTL="$pg_bin/pg_ctl" FF_TEST_PG_DATA="$pg_tmp/db"
 unset FF_DB_SCHEMA
 bin/python dev_scripts/setup_database.py --create-database --pg-user "$(id -un)"
+"$pg_bin/psql" -h 127.0.0.1 -p "$pg_port" -U "$(id -un)" -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+ALTER ROLE byteforge_file_friend SET statement_timeout = '5s';
+ALTER ROLE byteforge_file_friend SET lock_timeout = '2s';
+ALTER ROLE byteforge_file_friend SET idle_in_transaction_session_timeout = '10s';
+SQL
 bin/python dev_scripts/setup_database.py # Idempotent schema replay.
 bin/python -m pytest "$@"

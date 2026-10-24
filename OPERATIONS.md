@@ -124,3 +124,29 @@ See [PLAN.md](PLAN.md), [CLAUDE.md](CLAUDE.md) and [spike results](spike/README.
 Reviewed the lifecycle/database layer, hooks/authentication, worker, CLI/helper, schema/setup tools, packaging and Docker/nginx configuration. Fixed malformed credential/hook/heartbeat handling, special-file blocking in downloads and verification, transfer lock and slow-body deadlines, HTTP error-response cleanup, stale deletion snapshots, long-lived client deadlines, protocol-error reporting, database cleanup signal handling and worker children surviving supervisor death. Readiness now distinguishes database and worker failures. Regression tests reproduce the original failures; the worker test also fails when the old spawning behavior is intentionally restored.
 
 The current suite has 78 tests plus nine crash subtests. Production Gatekeeper/TLS, Loki/Prometheus, target-volume power-loss and large-file acceptance remain separate deployment work; this review does not claim those have been implemented or validated.
+
+## Athena PgCat configuration and recovery
+
+Athena review ticket `7e5cd161-2191-4626-ac2a-cf36b9021d0b` approves transaction pooling subject to application corrections and operator decisions. No provisioning or deployment is authorized by this document.
+
+Production uses the Athena-approved tailnet hostname on port **6432**, not direct PostgreSQL 5432. Set `FF_DB_SSLMODE=disable` explicitly: the approved route uses Tailscale WireGuard transport, not PostgreSQL TLS. Apollo owns container routing/DNS and deployment. Passwords must use Athena's private handoff process and never tickets or source files. Local examples use loopback 5432 for disposable testing only.
+
+Athena must provision role defaults `statement_timeout=5s`, `lock_timeout=2s`, `idle_in_transaction_session_timeout=10s`. PgCat drops startup options, so the application omits them and sets transaction-local statement/lock limits. Pre-ping ends its transaction; normal and exceptional exit paths release pool slots. SQLSTATE 58000 becomes HTTP 503 with Retry-After, with bounded acquisition retries and no automatic transaction-body replay. Retry reads or proven-unexecuted writes; reconcile ambiguous mutations before another attempt. A PgCat restart briefly disconnects clients; test reconnect and role defaults through 6432 before rollout.
+
+The initial schema requires a cleanup timestamp for terminal states. This is still the **unprovisioned initial schema**; an existing production schema must not be silently updated via `IF NOT EXISTS`. Athena applies the final hash-pinned initial snapshot under its existence guard. Future schema changes require numbered migrations with published commit and SHA-256, explicit owner-run dry run/rollback and apply.
+
+### Coordinated restore: keep the service stopped
+
+There is **no implemented restore-specific or conservative reconciler mode**. Ordinary reconciliation is not a substitute for restore inventory. Keep public download ingress, API, worker and tusd stopped while Athena restores metadata and Apollo inventories/restores the volume. Static nginx downloads can expose files even without a database row, so blocking ingress is essential.
+
+| Restored mismatch | Current normal behavior | Required offline recovery before reopening ingress |
+|---|---|---|
+| `ready` row, published bytes missing | Remains ready until expiry; no missing-file repair | Mark for failed cleanup through an explicitly reviewed state correction; do not advertise it as ready. Resolve both source and published artifacts before terminal `failed`/`deleted_at`. |
+| `uploading`, `verifying`, `publishing` row | May continue verification/publication if source is complete; otherwise waits or expires | Fail these uncertain transfers through durable `deleting` intent with terminal `failed`, then controlled cleanup. Do not blindly resume the normal worker against a restored snapshot. |
+| `deleting` row | Reconciler resumes unpublication and tusd termination | Preserve intent and finish deletion before marking the terminal state with `deleted_at`. Do not erase the intent while artifacts remain. |
+| File with no row | Unknown `.info` artifacts are reported as `UnreservedUpload`, never adopted; payloads/publications without `.info` are not comprehensively inventoried | Apollo inventories both `uploads/` and `done/`, quarantines unowned artifacts outside served paths, and never creates database rows from them. Quarantine is an operator action, not an automatic feature. |
+| `ready` row and matching files | Normal worker trusts the recorded ready state | Verify identity, size, SHA-256, expiry and deletion/revocation history against the recovery evidence. Do not renew timestamps or restore access to a previously revoked capability. |
+
+Athena owns reviewed database corrections; Apollo owns stopped-volume/quarantine actions. Never unlink an active tusd upload. Prefer the normal deletion protocol in a controlled recovery window after state correction, with ingress still blocked. A terminal timestamp is set only after required storage cleanup. If prior revocations cannot be established from available recovery evidence, retire the affected capability rather than republishing it.
+
+Metadata backups may lag bytes by up to 24 hours under the reviewed daily-dump policy; there is no PITR. Jason accepted the database error-statement logging exposure in Athena's 2026-10-24 ticket note: no role-level log_min_error_statement override is planned. Failed SQL can therefore expose capability IDs/filenames in access-controlled PostgreSQL/Loki logs; application validation remains important. Backup retention is still Jason's pending decision, not an application-agent approval. Enrollment and first successful backup must be verified before production readiness. A coordinated restore drill is still required; this runbook does not claim one has been performed for File Friend.
