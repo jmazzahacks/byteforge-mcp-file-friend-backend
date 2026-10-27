@@ -169,7 +169,7 @@ def test_real_cli_upload_download_and_reference(stack, tmp_path: Path) -> None:
     source.write_bytes(bytes(range(256)) * 1024)
     state["drop"] = True
     upload = subprocess.run(
-        [sys.executable, "-m", "byteforge_mcp_file_friend_api_python.cli", "upload", str(source), "--chunk-size", "32K"],
+        [sys.executable, "-m", "byteforge_mcp_file_friend_cli.cli", "upload", str(source), "--chunk-size", "32K"],
         env=env,
         capture_output=True,
         text=True,
@@ -181,7 +181,7 @@ def test_real_cli_upload_download_and_reference(stack, tmp_path: Path) -> None:
     assert "bytes" in upload.stderr
     target = tmp_path / "received.bin"
     subprocess.run(
-        [sys.executable, "-m", "byteforge_mcp_file_friend_api_python.cli", "download", ref["id"], "-o", str(target)],
+        [sys.executable, "-m", "byteforge_mcp_file_friend_cli.cli", "download", ref["id"], "-o", str(target)],
         env=env,
         capture_output=True,
         timeout=15,

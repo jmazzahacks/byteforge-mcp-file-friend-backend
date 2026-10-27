@@ -1,8 +1,8 @@
 # Protocol and lifecycle validation spike
 
-Updated 2026-10-24: **15 real-tusd probes and 10 lifecycle tests passed**, including nine process-crash checkpoints and cross-process races. Tested tusd v2.10.1 / tuspy 1.1.0 on Linux x86_64 / Python 3.13.15. The validated lifecycle prototype now lives in `src/ff/core/lifecycle.py`; these probes exercise that implementation, not a separate mock. Deployment acceptance gates remain below.
+Updated 2026-10-24: **15 real-tusd probes and 10 lifecycle tests passed**, including nine process-crash checkpoints and cross-process races. Tested tusd v2.10.1 / tuspy 1.1.0 on Linux x86_64 / Python 3.13.15. The lifecycle implementation lives in the separately installed `byteforge_mcp_file_friend_core.lifecycle` module; these probes exercise that implementation, not a separate mock. Deployment acceptance gates remain below.
 
-**PostgreSQL update:** the lifecycle implementation now requires `FF_DB_*` pointing to an initialized disposable PostgreSQL database. The full application suite passes 78 tests plus nine crash subtests, including a real database outage during upload. Run `dev_scripts/test_local.sh` for isolated database setup and cleanup. The protocol runner's lifecycle probe also writes PostgreSQL records; it no longer runs the standalone sidecar test suite.
+**PostgreSQL update:** the lifecycle implementation now requires `FF_DB_*` pointing to an initialized disposable PostgreSQL database. The pre-extraction full workspace suite passed 78 tests plus nine crash subtests, including a real database outage during upload. Run `dev_scripts/test_local.sh` for isolated database setup and cleanup. The protocol runner's lifecycle probe also writes PostgreSQL records; it no longer runs the standalone sidecar test suite.
 
 From the repository root:
 

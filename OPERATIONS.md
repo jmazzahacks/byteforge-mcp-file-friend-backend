@@ -1,12 +1,12 @@
 # Operations reference
 
-Historical workspace documentation adapted for backend imports. The client is a separate published package, pinned for backend tests in `test-requirements.txt`; validation counts below describe the original workspace, not this new repository. See README.md for current backend installation/tests.
+Historical workspace documentation adapted for backend imports. The SDK and CLI are separate published packages, pinned for backend tests in `test-requirements.txt`; validation counts below describe the original workspace, not this new repository. See README.md for current backend installation/tests.
 
 # MCP File Friend
 
 Out-of-band file transfer for remote MCP tools. Upload bytes through tusd, verify SHA-256, and pass a small file reference through MCP.
 
-**Status:** PostgreSQL conversion is implemented and validated locally. The production topology is service/file storage on Apollo and PostgreSQL metadata on Athena. No production deployment has been performed. Gatekeeper/TLS, observability and target-volume acceptance remain.
+**Status:** PostgreSQL conversion is implemented and validated locally. The production topology is service/file storage on Apollo and PostgreSQL metadata on Athena. Apollo recorded a successful 69-byte production upload/verified-download on 2026-10-25 (ticket `af47d722-b189-4f26-8899-5c2f728052ba`). This is small-transfer evidence only; sustained exhaustion and 20–40 GB acceptance remain unverified.
 
 ## Local Docker setup
 
@@ -21,11 +21,11 @@ curl http://127.0.0.1:8081/ready
 
 `/health` checks the API; `/ready` additionally checks PostgreSQL and the worker heartbeat. The test database is disposable and has no published port. To remove only that test stack and its data, use the same Compose arguments with `down -v`. The normal `compose.yaml` expects an externally provisioned database and does not migrate it automatically. The local administrator token authorizes all uploads and deletions, including uploads created with another accepted token. Status IDs and download URLs are bearer capabilities. Keep them out of logs. Internal hooks and tusd are private; direct tusd downloads and HTTP method overrides are blocked.
 
-This Compose configuration is for local use. Public deployment requires TLS, the chosen domain, Gatekeeper authentication and storage benchmarking. Do not expose the development token configuration publicly. No image has been published. The selected license is MIT.
+This Compose configuration is for local use. Public deployment requires TLS, the chosen domain, Gatekeeper authentication and storage benchmarking. Do not expose the development token configuration publicly. The service image release record is in `releases/1.md`. The selected license is MIT.
 
 ## CLI
 
-The `ff` command belongs to the separate Python client package (see `test-requirements.txt` for the reviewed revision), not this backend. Configure `FF_SERVER_URL` and `FF_TOKEN`, or `~/.config/ff/config.toml`:
+Install `ff` from [byteforge-mcp-file-friend-cli](https://github.com/jmazzahacks/byteforge-mcp-file-friend-cli#install-on-a-host). It uses the Python SDK, which no longer installs the executable. `test-requirements.txt` pins both for local integration tests. Configure `FF_SERVER_URL` and `FF_TOKEN`, or `~/.config/ff/config.toml`:
 
 ```toml
 server_url = "https://ff.example.com"
@@ -36,9 +36,9 @@ Environment variables override the file. Loopback HTTP is allowed for local test
 
 ```bash
 ff upload ./report.pdf --ttl 24h
-ff download <id-or-url> -o ./report.pdf
-ff info <id-or-url>
-ff rm <id-or-url>
+ff download '<id-or-url>' -o ./report.pdf
+ff info '<id-or-url>'
+ff rm '<id-or-url>'
 ```
 
 Commands emit JSON on stdout and progress/errors on stderr. Upload returns a ready reference only after verification. Interrupted uploads resume using a locked cache keyed by server and source path, with full SHA-256/size/options checked before reuse. Changed sources require `--restart`. Lost PATCH responses recover via HEAD. `--chunk-size` defaults to 64 MiB; `--timeout` defaults to one hour and should be increased for slow or very large transfers.
@@ -89,15 +89,16 @@ cp "$ignore_backup" .gitignore
 rm "$ignore_backup"
 source bin/activate
 uv pip install --require-hashes -r requirements.txt -r dev-requirements.txt -r build-requirements.txt
-python dev_scripts/build_internal_wheels.py
-uv build --wheel --no-build-isolation
-uv pip install --no-deps dist/*.whl
+wheel_dir=$(mktemp -d)
+python dev_scripts/build_internal_wheels.py --out-dir "$wheel_dir"
+uv build --wheel --no-build-isolation --out-dir "$wheel_dir"
+uv pip install --no-deps "$wheel_dir"/*.whl
 uv pip install --no-deps --no-build-isolation -r test-requirements.txt
 TUSD_BIN=/path/to/verified/tusd-v2.10.1 bash dev_scripts/test_local.sh -q
 ruff check src tests spike/validate.py spike/test_lifecycle.py
 ```
 
-`dev_scripts/test_local.sh` creates a temporary PostgreSQL 18 cluster, applies the schema twice, runs tests in isolated schemas, and stops/removes the cluster afterward. Set `FF_TEST_PG_BIN` for a different installed PostgreSQL binary directory. It uses loopback trust authentication exclusively for its disposable cluster; never copy that authentication policy to production. Without `TUSD_BIN`, real-tusd tests explicitly skip. Plain `pytest` without `FF_TEST_DATABASE=1` skips database-dependent tests; those tests are owned by the separate client and core repositories.
+`dev_scripts/test_local.sh` creates a temporary PostgreSQL 18 cluster, applies the schema twice, runs tests in isolated schemas, and stops/removes the cluster afterward. Set `FF_TEST_PG_BIN` for a different installed PostgreSQL binary directory. It uses loopback trust authentication exclusively for its disposable cluster; never copy that authentication policy to production. Without `TUSD_BIN`, real-tusd tests explicitly skip. Plain `pytest` without `FF_TEST_DATABASE=1` skips database-dependent tests; use the disposable runner above for backend database coverage. SDK and core maintain separate suites.
 
 Before repository extraction, the full workspace suite passed **78 tests plus nine crash subtests**, including an actual PostgreSQL stop/restart during a tusd upload, lost commit acknowledgement, dead pooled connections, concurrent admission, rollback, retained deletion intent, process death, Range and reference safety. All 15 standalone protocol probes also passed against PostgreSQL. Docker/nginx validation passed a 100 MiB round trip, database stop/restart, continued static downloads during the outage and readiness recovery, with no application sidecar directory. To rerun those probes with `bash spike/run.sh`, first configure `FF_DB_*` for a disposable database and apply `database/schema.sql`; the lifecycle probe writes records there.
 
@@ -111,13 +112,13 @@ For an existing disposable database, run `python dev_scripts/setup_database.py`.
 
 The pool checks connections before use, discards broken sockets, bounds checkout retries and uses connection/statement/lock timeouts. A failed commit is not automatically replayed: reconciliation reads durable state first. Database transactions never span hashing or tusd calls. Local filesystem locks and durable publication/deletion intents bridge the non-atomic database/filesystem boundary.
 
-Production provisioning and migration application belong to Athena's agent; host deployment belongs to Apollo's agent, through tickets. No production data exists to migrate. Startup rejects a volume containing legacy lifecycle sidecars; they are neither imported nor deleted automatically: use a clean test volume, or arrange an explicit offline import if those files must be retained. Coordinate database and volume backups; a restored database alone cannot reconstruct file bytes or safely recreate deleted capabilities.
+Production provisioning and migration application belong to Athena's agent; host deployment belongs to Apollo's agent, through tickets. Startup rejects a volume containing legacy lifecycle sidecars; they are neither imported nor deleted automatically: use a clean test volume, or arrange an explicit offline import if those files must be retained. Coordinate database and volume backups; a restored database alone cannot reconstruct file bytes or safely recreate deleted capabilities.
 
 To repeat the Docker check against an isolated local stack, export `FF_SERVER_URL` and `FF_TOKEN`, then run `python tests/validate_compose.py`. It creates and deletes a 100 MiB upload.
 
-`requirements.in`, `dev-requirements.in` and `build-requirements.in` are dependency inputs; corresponding `.txt` files pin versions and hashes. Refresh using `uv pip compile --generate-hashes --exclude-newer '7 days' --output-file <lock> <input>`, preserving compatible constraints across locks, then rerun validation. Docker uses pinned image digests, hashed dependencies, nonroot application processes and a local wheel build. `build-publish.sh` builds locally by default; publishing is explicit and requires a license.
+`requirements.in`, `dev-requirements.in` and `build-requirements.in` are dependency inputs; corresponding `.txt` files pin versions and hashes. Refresh using `uv pip compile --generate-hashes --exclude-newer '7 days' -c <existing-lock> --output-file <lock> <input>`, preserving compatible constraints across locks, then rerun validation. Docker uses pinned image digests, hashed dependencies, nonroot application processes and a local wheel build. `build-publish.sh` builds locally by default; publishing is explicit and requires a license.
 
-See [PLAN.md](PLAN.md), [CLAUDE.md](CLAUDE.md) and [spike results](spike/README.md) for architecture and remaining deployment gates.
+See the workspace-level `PLAN.md` (outside this repository), [CLAUDE.md](CLAUDE.md) and [spike results](spike/README.md) for architecture and remaining deployment gates.
 
 ## Code review follow-up
 
@@ -131,9 +132,9 @@ Athena review ticket `7e5cd161-2191-4626-ac2a-cf36b9021d0b` approves transaction
 
 Production uses the Athena-approved tailnet hostname on port **6432**, not direct PostgreSQL 5432. Set `FF_DB_SSLMODE=disable` explicitly: the approved route uses Tailscale WireGuard transport, not PostgreSQL TLS. Apollo owns container routing/DNS and deployment. Passwords must use Athena's private handoff process and never tickets or source files. Local examples use loopback 5432 for disposable testing only.
 
-Athena must provision role defaults `statement_timeout=5s`, `lock_timeout=2s`, `idle_in_transaction_session_timeout=10s`. PgCat drops startup options, so the application omits them and sets transaction-local statement/lock limits. Pre-ping ends its transaction; normal and exceptional exit paths release pool slots. SQLSTATE 58000 with the PgCat pool-checkout/AllServersDown diagnostic becomes HTTP 503 with Retry-After, with bounded acquisition retries and no automatic transaction-body replay. Retry reads or proven-unexecuted writes; reconcile ambiguous mutations before another attempt. A PgCat restart briefly disconnects clients; test reconnect and role defaults through 6432 before rollout.
+The required Athena role defaults are `statement_timeout=5s`, `lock_timeout=2s`, `idle_in_transaction_session_timeout=10s`. PgCat drops startup options, so the application omits them and sets transaction-local statement/lock limits. Pre-ping ends its transaction; normal and exceptional exit paths release pool slots. SQLSTATE 58000 with the PgCat pool-checkout/AllServersDown diagnostic becomes HTTP 503 with Retry-After, with bounded acquisition retries and no automatic transaction-body replay. Retry reads or proven-unexecuted writes; reconcile ambiguous mutations before another attempt. A PgCat restart briefly disconnects clients; test reconnect and role defaults through 6432 before rollout.
 
-The initial schema requires a cleanup timestamp for terminal states. This is still the **unprovisioned initial schema**; an existing production schema must not be silently updated via `IF NOT EXISTS`. Athena applies the final hash-pinned initial snapshot under its existence guard. Future schema changes require numbered migrations with published commit and SHA-256, explicit owner-run dry run/rollback and apply.
+The initial schema requires a cleanup timestamp for terminal states. Athena completed initial provisioning under ticket `7e5cd161-2191-4626-ac2a-cf36b9021d0b`. Do not silently update an existing production schema through `IF NOT EXISTS`. Future schema changes require numbered migrations with published commit and SHA-256, explicit owner-run dry run/rollback and apply.
 
 ### Coordinated restore: keep the service stopped
 
@@ -149,7 +150,7 @@ There is **no implemented restore-specific or conservative reconciler mode**. Or
 
 Athena owns reviewed database corrections; Apollo owns stopped-volume/quarantine actions. Never unlink an active tusd upload. Prefer the normal deletion protocol in a controlled recovery window after state correction, with ingress still blocked. A terminal timestamp is set only after required storage cleanup. If prior revocations cannot be established from available recovery evidence, retire the affected capability rather than republishing it.
 
-Metadata backups may lag bytes by up to 24 hours under the reviewed daily-dump policy; there is no PITR. Jason accepted the database error-statement logging exposure in Athena's 2026-10-24 ticket note: no role-level log_min_error_statement override is planned. Failed SQL can therefore expose capability IDs/filenames in access-controlled PostgreSQL/Loki logs; application validation remains important. Backup retention is still Jason's pending decision, not an application-agent approval. Enrollment and first successful backup must be verified before production readiness. A coordinated restore drill is still required; this runbook does not claim one has been performed for File Friend.
+Metadata backups may lag bytes by up to 24 hours under the reviewed daily-dump policy; there is no PITR. Jason accepted the database error-statement logging exposure in Athena's 2026-10-24 ticket note: no role-level log_min_error_statement override is planned. Failed SQL can therefore expose capability IDs/filenames in access-controlled PostgreSQL/Loki logs; application validation remains important. Backup retention is still Jason's pending decision, not an application-agent approval. Jason explicitly deferred Databasus enrollment until after go-live. It is not a pre-go-live gate; Athena tracks enrollment, retention and the first successful dump in follow-up `64a78a8d`. A coordinated restore drill is still required; this runbook does not claim one has been performed for File Friend.
 
 ### Initial Apollo shared-disk capacity
 

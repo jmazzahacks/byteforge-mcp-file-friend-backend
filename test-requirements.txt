@@ -1,3 +1,5 @@
-# First-party test dependency: immutable Git revision; no runtime dependency.
+# First-party test dependencies: immutable Git revisions; not service runtime dependencies.
 # Install separately from hashed third-party locks with --no-deps --no-build-isolation.
-byteforge-mcp-file-friend-api-python @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-api-python.git@737c38210654201ff7fd5fa60c23f71898614842
+# Keep the backend's own compatible models revision installed by its internal wheel builder.
+byteforge-mcp-file-friend-api-python @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-api-python.git@4e422154d2e95d8634892a7b4e34c904d2518e39
+byteforge-mcp-file-friend-cli @ git+https://github.com/jmazzahacks/byteforge-mcp-file-friend-cli.git@f4bccefcbb880b468d32b9afbfc2ba2664004d3f
